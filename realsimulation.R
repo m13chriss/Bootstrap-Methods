@@ -3,6 +3,7 @@ library(AER)
 library(ggplot2)
 library(stats4)
 library(kernelboot)
+library(simpleboot)
 
 
 data("CPS1985")#determinants of wage data
@@ -19,29 +20,14 @@ boxplot(d$wage~d$gender, las=1, ylab="Wage ($)",
 d=d[!(d$wage > 40),]
 boxplot(d$wage~d$gender, las=1, ylab="Wage ($)", 
         xlab="gender",main="Wage by Gender")
+#vector for male and female wages
+male = d[d$gender=='male',"wage"]
+female = d[d$gender=='female',"wage"]
 
-male = d[d$gender=='male',]
-female = d[d$gender=='female',]
-#plotting the distribution of wage for male and female
-ggplot(male, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey")+geom_density(data = data.frame(wage =rchisq(50000, df=9)), col = "black")+ labs(x = "Wage ($) for Male", y = "Density")
-ggplot(female,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey") +geom_density(data = data.frame(wage =rchisq(50000, df=8)), col = "black")+ labs(x = "Wage ($) for Female", y = "Density")
+#data frame male and female wages
+m <- d[d$gender=="male",]
+f <- d[d$gender=="female",]
 
-
-####
-ggplot() + 
-  geom_line(data = d, aes(x = A, y = B), col = "red") +
-  geom_histogram(data = d, aes(x = A), alpha = .5) +
-  facet_wrap(~ ss,as.table=T)
-
-#mean for male and female wages
-m <- d$wage[d$gender=="male"]
-f <- d$wage[d$gender=="female"]
-
-geom_density(aes(y=0.5*..count..), colour="black", adjust=4) 
-
-
-ggplot(d[d$gender=='male',], aes(wage)) +geom_density(aes(y=0.5*..count..), colour="black", adjust=4)+xlim(0,30)
-ggplot(d[d$gender=='female',], aes(wage)) +geom_density() +xlim(0,30)
 #################Create a function with comparison of means############################
 
 diff.means.boot <- function(d, i) {
@@ -52,19 +38,26 @@ diff.means.boot <- function(d, i) {
   return(m1-m2)
 }
 
-#nonparametric boot
-nonparam <- boot(d, diff.means.boot, R=1000, stype = "i" ) 
-nonparam
-plot(nonparam)
+##nonparametric boot##
+nonparam.diff <- two.boot(male, female, mean, R = 1000)
+hist(nonparam.diff$t)
 
-#parametric boot
+
+##parametric boot##
+
+#plotting the distribution of wage for male and female to see the right fit
+ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey")+geom_density(data = data.frame(wage =rchisq(50000, df=9)), col = "black")+ labs(x = "Wage ($) for Male", y = "Density")
+ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey") +geom_density(data = data.frame(wage =rchisq(50000, df=8)), col = "black")+ labs(x = "Wage ($) for Female", y = "Density")
+
+
+#function for log likelihood
 LL_f <- function(df) {
-  R = dchisq(f, df)
+  R = dchisq(female, df)
   -sum(log(R))
 }
 
 LL_m <- function(df) {
-  R = dchisq(m, df)
+  R = dchisq(male, df)
   -sum(log(R))
 }
 
@@ -79,9 +72,6 @@ df_m <- 10
 df_f <- 8
 
 mle = c(df_f, df_m)
-
-
-
 #Set the function that simulates data by drawing from chi-squared distribution 
 #with degrees of freedom taken from MLE.
 gen_function <- function(x,mle) { f <- rchisq(length(x$wage[x$gender=="female"]),mle[1])
@@ -91,18 +81,19 @@ gen_function <- function(x,mle) { f <- rchisq(length(x$wage[x$gender=="female"])
   return(data)
   }
 
-param <- boot(d, sim = "parametric", ran.gen = gen_function, mle = mle, statistic = diff.means.boot, R=1000)
-param
-plot(param)
+param.diff <- boot(d, sim = "parametric", ran.gen = gen_function, mle = mle, statistic = diff.means.boot, R=1000)
+param.diff
+plot(param.diff)
+param.diff$t
 
 
 hist(d$wage, freq=FALSE, col="peachpuff")
 lines(density(rchisq(500, df=7.5)), lwd = 2, col = "chocolate3")
 
 
-#smoothed boot
+##smoothed boot##
 
-k=kernelboot(
+smoothed.diff=kernelboot(
   d,
   diff.means.boot,
   R = 1000,
@@ -110,11 +101,9 @@ k=kernelboot(
   kernel = "gaussian",
   shrinked = TRUE
 )
-summary(k)
-k$orig.stat
-hist(k$boot.samples)
-
-
+summary(smoothed.diff)
+smoothed.diff$orig.stat
+hist(smoothed.diff$boot.samples)
 ################Create a function for variance of difference of means##################
 var.diffmeans.boot <- function(d, i) {
   
@@ -127,19 +116,18 @@ var.diffmeans.boot <- function(d, i) {
 }
 
 #nonparametric variance
-nonparam <- boot(d, var.diffmeans.boot, R=1000, stype = "i" ) 
-nonparam
-plot(nonparam)
-
+nonparam.var <- boot(d, var.diffmeans.boot, R=1000, stype = "i" ) 
+nonparam.var
+plot(nonparam.var)
 #parametric variance
 
-param <- boot(d, sim = "parametric", ran.gen = gen_function, mle = mle, statistic = var.diffmeans.boot, R=1000)
-param
-plot(param)
+param.var <- boot(d, sim = "parametric", ran.gen = gen_function, mle = mle, statistic = var.diffmeans.boot, R=1000)
+param.var
+plot(param.var)
 
 #smoothed boot
 
-k=kernelboot(
+smoothed.var=kernelboot(
   d,
   var.diffmeans.boot,
   R = 1000,
@@ -147,33 +135,22 @@ k=kernelboot(
   kernel = "gaussian",
   shrinked = TRUE
 )
-summary(k)
-k$orig.stat
-hist(k$boot.samples)
+summary(smoothed.var)
+smoothed.var$orig.stat
+hist(smoothed.var$boot.samples)
 
 ################Create a function for CI of difference of means##################
-# var.diffmeans.boot <- function(d, i) {
-#   
-#   m1 <- mean(d[i, ][d$gender=="male", "wage"])
-#   m2 <- mean(d[i, ][d$gender=="female", "wage"])
-#   
-#   v1 <- var(d[i, ][d$gender=="male", "wage"])
-#   v2 <- var(d[i, ][d$gender=="female", "wage"])
-#   
-#   n1 <- length(d[i, ][d$gender=="male", "wage"])
-#   n2 <- length(d[i, ][d$gender=="female", "wage"])
-#   
-#   CIn=(m1-m2)-1.96*((v1/n1)+(v2/n2))
-#   CIm=(m1-m2)+1.96*((v1/n1)+(v2/n2))
-#   
-#   
-#   return()
-#}
+
+##nonparametric##
+quantile(nonparam.diff$t, prob=0.025)
+quantile(nonparam.diff$t, prob=0.975)
+
+##parametric##
+quantile(param.diff$t, prob=0.025)
+quantile(param.diff$t, prob=0.975)
+
+##smoothed##
+quantile(smoothed.diff$boot.samples, prob=0.025)
+quantile(smoothed.diff$boot.samples, prob=0.975)
 
 
-# view results
-results
-plot(results)
-
-# get 95% confidence interval
-boot.ci(results, type="bca")
