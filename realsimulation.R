@@ -1,10 +1,13 @@
+install.packages("reshape")
 library(boot)
 library(AER)
 library(ggplot2)
 library(stats4)
 library(kernelboot)
 library(simpleboot)
-
+library(tidyverse)
+library(hrbrthemes)
+library(reshape)
 
 data("CPS1985")#determinants of wage data
 
@@ -41,8 +44,6 @@ diff.means.boot <- function(d, i) {
 ##nonparametric boot##
 nonparam.diff <- two.boot(male, female, mean, R = 1000)
 hist(nonparam.diff$t)
-
-
 ##parametric boot##
 
 #plotting the distribution of wage for male and female to see the right fit
@@ -83,12 +84,10 @@ gen_function <- function(x,mle) { f <- rchisq(length(x$wage[x$gender=="female"])
 
 param.diff <- boot(d, sim = "parametric", ran.gen = gen_function, mle = mle, statistic = diff.means.boot, R=1000)
 param.diff
-plot(param.diff)
-param.diff$t
-
-
-hist(d$wage, freq=FALSE, col="peachpuff")
-lines(density(rchisq(500, df=7.5)), lwd = 2, col = "chocolate3")
+# plot(param.diff)
+# param.diff$t
+# hist(d$wage, freq=FALSE, col="peachpuff")
+# lines(density(rchisq(500, df=7.5)), lwd = 2, col = "chocolate3")
 
 
 ##smoothed boot##
@@ -104,6 +103,44 @@ smoothed.diff=kernelboot(
 summary(smoothed.diff)
 smoothed.diff$orig.stat
 hist(smoothed.diff$boot.samples)
+#plot all three for comparison and one together
+
+ggplot() + aes(nonparam.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="tomato1", color="#e9ecef", alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+
+ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="#69b3a2", color="#e9ecef", alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9) +
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+#Combined density graphs
+df <- data.frame(Nonparametric=nonparam.diff$t,
+                 Parametric=param.diff$t,
+                 Smoothed=smoothed.diff$boot.samples)
+
+
+#convert from wide format to long format
+data <- melt(df)
+head(data)
+library(ggplot2)
+
+#create overlaying density plots
+ggplot(data, aes(x=value, fill=variable)) +
+  geom_density(alpha=.5)+theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
 ################Create a function for variance of difference of means##################
 var.diffmeans.boot <- function(d, i) {
   
@@ -138,6 +175,9 @@ smoothed.var=kernelboot(
 summary(smoothed.var)
 smoothed.var$orig.stat
 hist(smoothed.var$boot.samples)
+
+
+
 
 ################Create a function for CI of difference of means##################
 
