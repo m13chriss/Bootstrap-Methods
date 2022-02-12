@@ -1,4 +1,6 @@
 install.packages("reshape")
+install.packages("gridExtra")
+install.packages("grid")
 library(boot)
 library(AER)
 library(ggplot2)
@@ -8,6 +10,7 @@ library(simpleboot)
 library(tidyverse)
 library(hrbrthemes)
 library(reshape)
+library(gridExtra)
 
 data("CPS1985")#determinants of wage data
 
@@ -105,20 +108,32 @@ smoothed.diff$orig.stat
 hist(smoothed.diff$boot.samples)
 #plot all three for comparison and one together
 
-ggplot() + aes(nonparam.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="tomato1", color="#e9ecef", alpha=0.9) +
+#create a scaling function
+scaleFUN <- function(x) sprintf("%.1f", x)
+
+plot1 <- ggplot() + aes(nonparam.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="tomato1", color="#e9ecef", alpha=0.9)+
+geom_vline(aes(xintercept = mean(nonparam.diff$t)),col='#a269ff',size=0.4,linetype="dashed")+
+geom_vline(aes(xintercept = nonparam.diff$t0),col='black',size=0.4,linetype="dashed")+
+scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
 
 
-ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="#69b3a2", color="#e9ecef", alpha=0.9) +
+plot2 <- ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="#69b3a2", color="#e9ecef", alpha=0.9)+
+geom_vline(aes(xintercept = mean(param.diff$t)),col='#a269ff',size=0.4,linetype="dashed")+
+geom_vline(aes(xintercept = param.diff$t0),col='black',size=0.4,linetype="dashed")+
+scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
 
-ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9) +
+plot3 <- ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9)+
+geom_vline(aes(xintercept = mean(smoothed.diff$boot.samples)),col='#a269ff',size=0.4,linetype="dashed")+
+geom_vline(aes(xintercept = smoothed.diff$orig.stat),col="black",size=0.4,linetype="dashed") +
+scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
@@ -136,11 +151,14 @@ head(data)
 library(ggplot2)
 
 #create overlaying density plots
-ggplot(data, aes(x=value, fill=variable)) +
-  geom_density(alpha=.5)+theme_ipsum() +
+plot4 <- ggplot(data, aes(x=value, fill=variable)) +
+  geom_density(alpha=.5)+ scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
+
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2,top = "Difference in mean wages between men and women")
+
 ################Create a function for variance of difference of means##################
 var.diffmeans.boot <- function(d, i) {
   
