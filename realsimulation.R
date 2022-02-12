@@ -49,10 +49,26 @@ nonparam.diff <- two.boot(male, female, mean, R = 1000)
 hist(nonparam.diff$t)
 ##parametric boot##
 
-#plotting the distribution of wage for male and female to see the right fit
+#plotting the distribution of wage for male and female to see the right fit for parametric
 ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey")+geom_density(data = data.frame(wage =rchisq(50000, df=9)), col = "black")+ labs(x = "Wage ($) for Male", y = "Density")
 ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey") +geom_density(data = data.frame(wage =rchisq(50000, df=8)), col = "black")+ labs(x = "Wage ($) for Female", y = "Density")
+#plotting the distribution of wage for male and female to see the right fit for smoothed 
 
+sb_m <- ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="white")+stat_density(adjust = 0.5, alpha=0.3,fill="blue")+ labs(x = "Wage ($) for Male", y = "Kernel Density")+
+  theme_ipsum() +
+  theme(axis.text=element_text(size=19),
+               axis.title=element_text(size=19,face="bold"),
+    plot.title = element_text(size=18)
+  )
+
+sb_f <- ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="white") +stat_density(adjust = 0.5, alpha=0.3,fill="blue")+ labs(x = "Wage ($) for Female", y = "Kernel Density",fill="")+
+  theme_ipsum() +
+  theme(axis.text=element_text(size=19),
+        axis.title=element_text(size=19,face="bold"),
+        plot.title = element_text(size=18)
+  )
+
+grid.arrange(sb_m, sb_f, ncol=2,top = "KDF and EDF of wages for men and women")
 
 #function for log likelihood
 LL_f <- function(df) {
@@ -93,19 +109,63 @@ param.diff
 # lines(density(rchisq(500, df=7.5)), lwd = 2, col = "chocolate3")
 
 
-##smoothed boot##
+##smoothed bootstrap##
 
-smoothed.diff=kernelboot(
-  d,
-  diff.means.boot,
-  R = 1000,
-  bw = "default",
-  kernel = "gaussian",
-  shrinked = TRUE
-)
-summary(smoothed.diff)
-smoothed.diff$orig.stat
-hist(smoothed.diff$boot.samples)
+#smoothed.diff=kernelboot(
+#  d,
+#   diff.means.boot,
+#   R = 1000,
+#   bw = "default",
+#   kernel = "gaussian",
+#   shrinked = TRUE
+# )
+# summary(smoothed.diff)
+# smoothed.diff$orig.stat
+# hist(smoothed.diff$boot.samples)
+
+#smoothed boot 2.0
+z_f <- density(female, bw=0.15, kernel="gaussian")
+z_m <- density(male, bw=0.15, kernel="gaussian")
+
+width_f <- z_f$bw
+width_m <- z_m$bw 
+
+param<-c(width_m, width_f)
+
+
+rdens <- function(d, mle) {
+  male <- d[d$gender =='male', 'wage']
+  female <-d[d$gender =='female', 'wage']
+  
+  # Kernel width
+  n_f <- length(female)
+  n_m<-length(male)
+  # Kernel sampler
+  #m<-c()
+  m<-sample(male, n_m, replace=TRUE) + rnorm(n_m, sd=mle[1])
+  f<-sample(female, n_f, replace=TRUE) + rnorm(n_f, sd=mle[2])
+  data = data.frame(c(f, m), c(rep("female", length(f)), rep("male",  length(m))))
+  colnames(data) <-c("wage", "gender")
+  return(data)
+}
+
+smoothed.diff <- boot(d, sim = "parametric", ran.gen = rdens, mle=param, statistic = diff.means.boot, R=1000)
+hist(smoothed.diff)
+
+#plotting kernel density
+#z_f <- density(female, bw=0.15, kernel="gaussian")
+#z_m <- density(male, bw=0.15, kernel="gaussian")
+#width_f <- z_f$bw
+#width_m <- z_m$bw 
+#n_f <- length(female)
+#n_m<-length(male)
+#m<-sample(male, n_m, replace=TRUE) + rnorm(n_f, sd=mle[1])
+#f<-sample(female, n_f, replace=TRUE) + rnorm(n_m, sd=mle[2])
+#data = data.frame(c(f, m), c(rep("female", length(f)), rep("male",  length(m))))
+#colnames(data) <-c("wage", "gender")
+#data[data$wage<0,"wage"]<-0
+#hist(data$wage)
+#plot(z_f)
 #plot all three for comparison and one together
 
 #create a scaling function
@@ -132,9 +192,9 @@ plot2 <- ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwid
     plot.title = element_text(size=15)
   )
 
-plot3 <- ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9)+
-  geom_vline(aes(xintercept = mean(smoothed.diff$boot.samples)),col='blue',size=0.4,linetype="dashed")+
-  geom_vline(aes(xintercept = smoothed.diff$orig.stat),col="red",size=0.4,linetype="dashed") +
+plot3 <- ggplot() + aes(smoothed.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(smoothed.diff$t)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = smoothed.diff$t0),col="red",size=0.4,linetype="dashed") +
   scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
@@ -144,7 +204,7 @@ plot3 <- ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..dens
 #Combined density graphs
 df <- data.frame(Nonparametric=nonparam.diff$t,
                  Parametric=param.diff$t,
-                 Smoothed=smoothed.diff$boot.samples)
+                 Smoothed=smoothed.diff$t)
 
 
 #convert from wide format to long format
@@ -185,19 +245,23 @@ plot(param.var)
 
 #smoothed boot
 
-smoothed.var=kernelboot(
-  d,
-  var.diffmeans.boot,
-  R = 1000,
-  bw = "default",
-  kernel = "gaussian",
-  shrinked = TRUE
-)
-summary(smoothed.var)
-smoothed.var$orig.stat
-hist(smoothed.var$boot.samples)
+# smoothed.var=kernelboot(
+#   d,
+#   var.diffmeans.boot,
+#   R = 1000,
+#   bw = "default",
+#   kernel = "gaussian",
+#   shrinked = TRUE
+# )
+# summary(smoothed.var)
+# smoothed.var$orig.stat
 
-###ploting the above in graphs
+#Smoothed bootstrap var 2.0
+
+smoothed.var <- boot(d, sim = "parametric", ran.gen = rdens, mle=param, statistic = var.diffmeans.boot, R=1000)
+hist(smoothed.diff)
+
+###fitting the kernel density function
 
 
 #create a scaling function
@@ -223,9 +287,9 @@ plot2 <- ggplot() + aes(param.var$t)+ geom_histogram(aes(y=..density..), binwidt
     plot.title = element_text(size=15)
   )
 
-plot3 <- ggplot() + aes(smoothed.var$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.0025, fill="lightblue", color="#e9ecef", alpha=0.9)+
-  geom_vline(aes(xintercept = mean(smoothed.var$boot.samples)),col='blue',size=0.4,linetype="dashed")+
-  geom_vline(aes(xintercept = smoothed.var$orig.stat),col="red",size=0.4,linetype="dashed") +
+plot3 <- ggplot() + aes(smoothed.var$t)+ geom_histogram(aes(y=..density..), binwidth=0.0025, fill="lightblue", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(smoothed.var$t)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = smoothed.var$t0),col="red",size=0.4,linetype="dashed") +
   scale_x_continuous(labels=scaleFUN)+labs(x = "Variance of difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
@@ -235,7 +299,7 @@ plot3 <- ggplot() + aes(smoothed.var$boot.samples)+ geom_histogram(aes(y=..densi
 #Combined density graphs
 df <- data.frame(Nonparametric=nonparam.var$t,
                  Parametric=param.var$t,
-                 Smoothed=smoothed.var$boot.samples)
+                 Smoothed=smoothed.var$t)
 
 
 #convert from wide format to long format
@@ -259,7 +323,7 @@ grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2,top = "Variance of diffe
 
 df <- data.frame(Nonparametric=nonparam.diff$t,
                  Parametric=param.diff$t,
-                 Smoothed=smoothed.diff$boot.samples)
+                 Smoothed=smoothed.diff$t)
 
 
 #convert from wide format to long format
@@ -271,11 +335,11 @@ df <- data.frame(do.call("rbind",
                data$variable,            # Specify group variable
                quantile,probs=c(0.025,0.975))))
 
-mean = list(mean(nonparam.diff$t), mean(param.diff$t), mean(smoothed.diff$boot.samples))
+mean = list(mean(nonparam.diff$t), mean(param.diff$t), mean(smoothed.diff$t))
 
 df$mean <- unlist(mean)
 
-df$true_mean <- c(nonparam.diff$t0,param.diff$t0,smoothed.diff$orig.stat)
+df$true_mean <- c(nonparam.diff$t0,param.diff$t0,smoothed.diff$t0)
 
 df$row_names <- row.names(df)
 
