@@ -256,8 +256,46 @@ grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2,top = "Variance of diffe
 
 ################Create a function for CI of difference of means##################
 
+
+df <- data.frame(Nonparametric=nonparam.diff$t,
+                 Parametric=param.diff$t,
+                 Smoothed=smoothed.diff$boot.samples)
+
+
+#convert from wide format to long format
+data <- melt(df)
+head(data)
+
+df <- data.frame(do.call("rbind",
+        tapply(data$value,       # Specify numeric column
+               data$variable,            # Specify group variable
+               quantile,probs=c(0.025,0.975))))
+
+mean = list(mean(nonparam.diff$t), mean(param.diff$t), mean(smoothed.diff$boot.samples))
+
+df$mean <- unlist(mean)
+
+df$true_mean <- c(nonparam.diff$t0,param.diff$t0,smoothed.diff$orig.stat)
+
+df$row_names <- row.names(df)
+
+df
+
+#Plotting the CI along with the means
+ggplot(df, aes(row_names, mean)) +        # ggplot2 plot with confidence intervals
+  geom_point(data=df, mapping=aes(x=row_names, y=true_mean,colour="Original Mean")) +
+  geom_point(data=df, mapping=aes(x=row_names, y=mean,colour="Bootstrap Mean")) +
+  geom_errorbar(aes(ymin =  X2.5., ymax = X97.5.))+labs(title="Comparison of 95% Confidence Intervals",y = "Confidence Interval (95%)",x="Bootstrap method",fill = "")+theme_ipsum() 
+  
+  
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
 ##nonparametric##
 quantile(nonparam.diff$t, prob=0.025)
+
 quantile(nonparam.diff$t, prob=0.975)
 
 ##parametric##
