@@ -293,17 +293,17 @@ ggplot(df, aes(row_names, mean)) +        # ggplot2 plot with confidence interva
     plot.title = element_text(size=15)
   )
 
-##nonparametric##
-quantile(nonparam.diff$t, prob=0.025)
-
-quantile(nonparam.diff$t, prob=0.975)
-
-##parametric##
-quantile(param.diff$t, prob=0.025)
-quantile(param.diff$t, prob=0.975)
-
-##smoothed##
-quantile(smoothed.diff$boot.samples, prob=0.025)
-quantile(smoothed.diff$boot.samples, prob=0.975)
+# ##nonparametric##
+# quantile(nonparam.diff$t, prob=0.025)
+# 
+# quantile(nonparam.diff$t, prob=0.975)
+# 
+# ##parametric##
+# quantile(param.diff$t, prob=0.025)
+# quantile(param.diff$t, prob=0.975)
+# 
+# ##smoothed##
+# quantile(smoothed.diff$boot.samples, prob=0.025)
+# quantile(smoothed.diff$boot.samples, prob=0.975)
 
 
