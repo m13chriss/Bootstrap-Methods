@@ -109,31 +109,33 @@ hist(smoothed.diff$boot.samples)
 #plot all three for comparison and one together
 
 #create a scaling function
+
 scaleFUN <- function(x) sprintf("%.1f", x)
 
-plot1 <- ggplot() + aes(nonparam.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="tomato1", color="#e9ecef", alpha=0.9)+
-geom_vline(aes(xintercept = mean(nonparam.diff$t)),col='#a269ff',size=0.4,linetype="dashed")+
-geom_vline(aes(xintercept = nonparam.diff$t0),col='black',size=0.4,linetype="dashed")+
-scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
+plot1 <- ggplot() + aes(nonparam.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightpink1", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(nonparam.diff$t)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = nonparam.diff$t0),col='red',size=0.4,linetype="dashed")+
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
 
 
-plot2 <- ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="#69b3a2", color="#e9ecef", alpha=0.9)+
-geom_vline(aes(xintercept = mean(param.diff$t)),col='#a269ff',size=0.4,linetype="dashed")+
-geom_vline(aes(xintercept = param.diff$t0),col='black',size=0.4,linetype="dashed")+
-scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
+plot2 <- ggplot() + aes(param.diff$t)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="darkseagreen3", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(param.diff$t),col='Bootstrap_mean'),size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = param.diff$t0,col='Original_mean'),size=0.4,linetype="dashed")+
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
+  scale_color_manual(name = "", values = c(Bootstrap_mean = "blue", Original_mean = "red"))+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
 
 plot3 <- ggplot() + aes(smoothed.diff$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.1, fill="lightblue", color="#e9ecef", alpha=0.9)+
-geom_vline(aes(xintercept = mean(smoothed.diff$boot.samples)),col='#a269ff',size=0.4,linetype="dashed")+
-geom_vline(aes(xintercept = smoothed.diff$orig.stat),col="black",size=0.4,linetype="dashed") +
-scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
+  geom_vline(aes(xintercept = mean(smoothed.diff$boot.samples)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = smoothed.diff$orig.stat),col="red",size=0.4,linetype="dashed") +
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+
   theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
@@ -148,11 +150,12 @@ df <- data.frame(Nonparametric=nonparam.diff$t,
 #convert from wide format to long format
 data <- melt(df)
 head(data)
-library(ggplot2)
+
 
 #create overlaying density plots
 plot4 <- ggplot(data, aes(x=value, fill=variable)) +
-  geom_density(alpha=.5)+ scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density")+theme_ipsum() +
+  geom_density(alpha=.25)+ scale_x_continuous(labels=scaleFUN)+labs(x = "Difference in mean wage",y="Density",fill = "")+
+  theme_ipsum() +
   theme(
     plot.title = element_text(size=15)
   )
@@ -194,7 +197,61 @@ summary(smoothed.var)
 smoothed.var$orig.stat
 hist(smoothed.var$boot.samples)
 
+###ploting the above in graphs
 
+
+#create a scaling function
+scaleFUN <- function(x) sprintf("%.3f", x)
+
+plot1 <- ggplot() + aes(nonparam.var$t)+ geom_histogram(aes(y=..density..), binwidth=0.0025, fill="lightpink1", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(nonparam.var$t)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = nonparam.var$t0),col='red',size=0.4,linetype="dashed")+
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Variance of difference in mean wage",y="Density")+
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+
+plot2 <- ggplot() + aes(param.var$t)+ geom_histogram(aes(y=..density..), binwidth=0.0025, fill="darkseagreen3", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(param.var$t),col='Bootstrap_mean'),size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = param.var$t0,col='Original_mean'),size=0.4,linetype="dashed")+
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Variance of difference in mean wage",y="Density")+
+  scale_color_manual(name = "", values = c(Bootstrap_mean = "blue", Original_mean = "red"))+
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+plot3 <- ggplot() + aes(smoothed.var$boot.samples)+ geom_histogram(aes(y=..density..), binwidth=0.0025, fill="lightblue", color="#e9ecef", alpha=0.9)+
+  geom_vline(aes(xintercept = mean(smoothed.var$boot.samples)),col='blue',size=0.4,linetype="dashed")+
+  geom_vline(aes(xintercept = smoothed.var$orig.stat),col="red",size=0.4,linetype="dashed") +
+  scale_x_continuous(labels=scaleFUN)+labs(x = "Variance of difference in mean wage",y="Density")+
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+#Combined density graphs
+df <- data.frame(Nonparametric=nonparam.var$t,
+                 Parametric=param.var$t,
+                 Smoothed=smoothed.var$boot.samples)
+
+
+#convert from wide format to long format
+data <- melt(df)
+head(data)
+
+
+#create overlaying density plots
+plot4 <- ggplot(data, aes(x=value, fill=variable)) +
+  geom_density(alpha=.25)+ scale_x_continuous(labels=scaleFUN)+labs(x = "Variance of difference in mean wage",y="Density",fill = "")+
+  theme_ipsum() +
+  theme(
+    plot.title = element_text(size=15)
+  )
+
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2, nrow=2,top = "Variance of difference in mean wages between men and women")
 
 
 ################Create a function for CI of difference of means##################
