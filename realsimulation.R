@@ -1,7 +1,3 @@
-install.packages("reshape")
-install.packages("gridExtra")
-install.packages("grid")
-install.packages('fitdistrplus')
 library(fitdistrplus)
 library(boot)
 library(AER)
@@ -21,6 +17,9 @@ data("CPS1985")#determinants of wage data
 View(CPS1985)
 d=CPS1985
 #Comparison of wage by gender
+ggplot(d, aes(x=gender, y=wage, fill = gender)) + geom_boxplot(outlier.colour="black", outlier.shape=16,
+             outlier.size=2, notch=FALSE) 
+
 boxplot(d$wage~d$gender, las=1, ylab="Wage ($)", 
         xlab="gender",main="Wage by Gender")
 #In the case of females we have an extreme outlier which we will be dropping as it 
@@ -46,15 +45,13 @@ diff.means.boot <- function(d, i) {
   return(m1-m2)
 }
 
+
+
 ##nonparametric boot##
 nonparam.diff <- two.boot(male, female, mean, R = 1000)
-hist(nonparam.diff$t)
 ##parametric boot##
-male
-
 fit_m <- fitdist(male, distr = "gamma", method = "mle")
 summary(fit_m)
-rgamma(50, 3, 10)
 
 fit_f <- fitdist(female, distr = "gamma", method = "mle")
 summary(fit_f)
@@ -76,14 +73,26 @@ pb_f <- ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,colo
         plot.title = element_text(size=18)
   )
 
-grid.arrange(pb_m, pb_f, ncol=2,top = "Fitted Gamma Density and EDF for wages for men and women")
+grid.arrange(pb_m, pb_f, ncol=2,top = "Fitted Gamma Distribution and EDF for wages of men and women")
 
 #chi
-ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey")+
-  geom_density(data = data.frame(wage =rchisq(50000, df=10)), col = "black")+ labs(x = "Wage ($) for Male", y = "Density")
+pm_m2 <-ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey")+
+  geom_density(data = data.frame(wage =rchisq(50000, df=10)), col = "black",fill="blue",alpha=0.25)+ labs(x = "Wage ($) for Male", y = "Density")+
+  theme_ipsum() +
+  theme(axis.text=element_text(size=19),
+        axis.title=element_text(size=19,face="bold"),
+        plot.title = element_text(size=18)
+  )
 
-ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey") +
-  geom_density(data = data.frame(wage =rchisq(50000, df=8)), col = "black")+ labs(x = "Wage ($) for Female", y = "Density")
+pm_f2 <-ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="grey") +
+  geom_density(data = data.frame(wage =rchisq(50000, df=8)), col = "black",fill="blue",alpha=0.25)+ labs(x = "Wage ($) for Female", y = "Density")+
+  theme_ipsum() +
+  theme(axis.text=element_text(size=19),
+        axis.title=element_text(size=19,face="bold"),
+        plot.title = element_text(size=18)
+  )
+
+grid.arrange(pm_m2, pm_f2, ncol=2,top = "Fitted Chi-Squared Distribution and EDF of wages for men and women")
 #plotting the distribution of wage for male and female to see the right fit for smoothed 
 
 sb_m <- ggplot(m, aes(x=wage))+geom_histogram(aes(y=..density..),binwidth=1,color="red", fill="white")+stat_density(adjust = 0.5, alpha=0.3,fill="blue")+ labs(x = "Wage ($) for Male", y = "Kernel Density")+
@@ -98,10 +107,9 @@ sb_f <- ggplot(f,aes(x=wage)) +geom_histogram(aes(y=..density..),binwidth=1,colo
   theme(axis.text=element_text(size=19),
         axis.title=element_text(size=19,face="bold"),
         plot.title = element_text(size=18)
-  )  + stat_function(aes(colour = "Normal"), fun = dnorm, args = list(mean = 0.3, sd = 1)) + 
-  scale_colour_manual(values = c("blue", "red"))
+  )
 
-grid.arrange(sb_m, sb_f, ncol=2,top = "KDF and EDF for wages for men and women")
+grid.arrange(sb_m, sb_f, ncol=2,top = "KDF and EDF of wages for men and women")
 
 #function for log likelihood
 LL_f <- function(df) {
